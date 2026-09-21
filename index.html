@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Smart Pole Monitoring Dashboard</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Icons -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- ================= SIDEBAR ================= -->
+    <aside class="sidebar">
+
+        <div class="brand">
+            <div class="brand-icon">
+                <i class="fa-solid fa-bolt"></i>
+            </div>
+
+            <div>
+                <h2>SMART POLE</h2>
+                <span>IoT MONITORING</span>
+            </div>
+        </div>
+
+        <nav>
+            <a href="#dashboard" class="active">
+                <i class="fa-solid fa-gauge-high"></i>
+                Dashboard
+            </a>
+
+            <a href="#energy">
+                <i class="fa-solid fa-solar-panel"></i>
+                Energy
+            </a>
+
+            <a href="#safety">
+                <i class="fa-solid fa-shield-halved"></i>
+                Safety
+            </a>
+
+            <a href="#communication">
+                <i class="fa-solid fa-tower-broadcast"></i>
+                Communication
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="system-small">
+                <span class="dot"></span>
+                System Operational
+            </div>
+        </div>
+
+    </aside>
+
+
+    <!-- ================= MAIN ================= -->
+    <main class="main">
+
+        <!-- HEADER -->
+        <header class="header">
+
+            <div>
+                <p class="eyebrow">SMART INFRASTRUCTURE</p>
+                <h1>Smart Pole Dashboard</h1>
+                <p class="subtitle">
+                    Real-time electrical, battery and structural monitoring
+                </p>
+            </div>
+
+            <div class="header-right">
+
+                <div class="pole-selector">
+                    <label>POLE ID</label>
+
+                    <select id="poleSelect">
+                        <option value="SP-001">SP-001</option>
+                        <option value="SP-002">SP-002</option>
+                        <option value="SP-003">SP-003</option>
+                        <option value="SP-004">SP-004</option>
+                    </select>
+                </div>
+
+                <div class="clock">
+                    <span id="date">--</span>
+                    <strong id="time">--:--:--</strong>
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- ================= STATUS BAR ================= -->
+
+        <section class="status-bar">
+
+            <div class="status-item">
+                <span class="status-dot online"></span>
+                <div>
+                    <small>POLE STATUS</small>
+                    <strong id="poleStatus">ONLINE</strong>
+                </div>
+            </div>
+
+            <div class="status-item">
+                <i class="fa-solid fa-tower-broadcast"></i>
+                <div>
+                    <small>LoRa LINK</small>
+                    <strong id="loraStatus">CONNECTED</strong>
+                </div>
+            </div>
+
+            <div class="status-item">
+                <i class="fa-solid fa-clock"></i>
+                <div>
+                    <small>LAST UPDATE</small>
+                    <strong id="lastUpdate">Just now</strong>
+                </div>
+            </div>
+
+            <div class="status-item">
+                <i class="fa-solid fa-location-dot"></i>
+                <div>
+                    <small>LOCATION</small>
+                    <strong id="location">Pole Network</strong>
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- ================= OVERVIEW ================= -->
+
+        <section id="dashboard">
+
+            <div class="section-title">
+                <div>
+                    <p class="eyebrow">LIVE PARAMETERS</p>
+                    <h2>System Overview</h2>
+                </div>
+
+                <span class="live-badge">
+                    <span></span> LIVE
+                </span>
+            </div>
+
+
+            <div class="cards">
+
+                <!-- Battery -->
+                <div class="card battery-card">
+
+                    <div class="card-top">
+                        <div class="icon-box battery-icon">
+                            <i class="fa-solid fa-battery-three-quarters"></i>
+                        </div>
+
+                        <span class="tag">BATTERY</span>
+                    </div>
+
+                    <div class="value-row">
+                        <strong id="batteryPercent">82</strong>
+                        <span>%</span>
+                    </div>
+
+                    <p>State of Charge</p>
+
+                    <div class="progress">
+                        <div id="batteryBar" style="width:82%"></div>
+                    </div>
+
+                    <div class="mini-values">
+                        <span>
+                            Voltage
+                            <b id="batteryVoltage">7.82 V</b>
+                        </span>
+
+                        <span>
+                            Status
+                            <b id="batteryStatus">Healthy</b>
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <!-- Solar -->
+                <div class="card">
+
+                    <div class="card-top">
+                        <div class="icon-box solar-icon">
+                            <i class="fa-solid fa-sun"></i>
+                        </div>
+
+                        <span class="tag">SOLAR</span>
+                    </div>
+
+                    <div class="value-row">
+                        <strong id="solarPower">42.6</strong>
+                        <span>W</span>
+                    </div>
+
+                    <p>Current Generation</p>
+
+                    <div class="mini-values">
+                        <span>
+                            Panel Voltage
+                            <b id="solarVoltage">10.8 V</b>
+                        </span>
+
+                        <span>
+                            Current
+                            <b id="solarCurrent">3.94 A</b>
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <!-- Load -->
+                <div class="card">
+
+                    <div class="card-top">
+                        <div class="icon-box load-icon">
+                            <i class="fa-solid fa-plug"></i>
+                        </div>
+
+                        <span class="tag">LOAD</span>
+                    </div>
+
+                    <div class="value-row">
+                        <strong id="loadPower">18.4</strong>
+                        <span>W</span>
+                    </div>
+
+                    <p>Current Consumption</p>
+
+                    <div class="mini-values">
+                        <span>
+                            Voltage
+                            <b id="loadVoltage">5.02 V</b>
+                        </span>
+
+                        <span>
+                            Current
+                            <b id="loadCurrent">3.67 A</b>
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <!-- Temperature -->
+                <div class="card">
+
+                    <div class="card-top">
+                        <div class="icon-box temp-icon">
+                            <i class="fa-solid fa-temperature-half"></i>
+                        </div>
+
+                        <span class="tag">TEMPERATURE</span>
+                    </div>
+
+                    <div class="value-row">
+                        <strong id="temperature">29.4</strong>
+                        <span>°C</span>
+                    </div>
+
+                    <p>System Temperature</p>
+
+                    <div class="temperature-state">
+                        <span class="status-dot online"></span>
+                        Normal operating range
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= ENERGY + SAFETY ================= -->
+
+        <section class="two-column" id="energy">
+
+            <!-- Energy chart -->
+            <div class="panel chart-panel">
+
+                <div class="panel-header">
+
+                    <div>
+                        <p class="eyebrow">ENERGY FLOW</p>
+                        <h2>Power Generation vs Consumption</h2>
+                    </div>
+
+                    <select id="chartRange">
+                        <option>Today</option>
+                        <option>7 Days</option>
+                        <option>30 Days</option>
+                    </select>
+
+                </div>
+
+                <div class="chart">
+
+                    <div class="y-labels">
+                        <span>60 W</span>
+                        <span>45 W</span>
+                        <span>30 W</span>
+                        <span>15 W</span>
+                        <span>0 W</span>
+                    </div>
+
+                    <div class="chart-area">
+
+                        <div class="grid-line"></div>
+                        <div class="grid-line"></div>
+                        <div class="grid-line"></div>
+                        <div class="grid-line"></div>
+                        <div class="grid-line"></div>
+
+                        <svg viewBox="0 0 800 280"
+                             preserveAspectRatio="none">
+
+                            <polyline
+                                class="solar-line"
+                                points="
+                                0,220
+                                80,180
+                                160,140
+                                240,100
+                                320,90
+                                400,65
+                                480,80
+                                560,55
+                                640,75
+                                720,45
+                                800,60
+                                "
+                            />
+
+                            <polyline
+                                class="load-line"
+                                points="
+                                0,225
+                                80,220
+                                160,218
+                                240,210
+                                320,215
+                                400,205
+                                480,212
+                                560,207
+                                640,214
+                                720,205
+                                800,210
+                                "
+                            />
+
+                        </svg>
+
+                    </div>
+
+                </div>
+
+                <div class="legend">
+
+                    <span>
+                        <i class="legend-solar"></i>
+                        Solar Generation
+                    </span>
+
+                    <span>
+                        <i class="legend-load"></i>
+                        Load Consumption
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- Safety -->
+            <div class="panel" id="safety">
+
+                <div class="panel-header">
+
+                    <div>
+                        <p class="eyebrow">STRUCTURAL MONITORING</p>
+                        <h2>Safety Status</h2>
+                    </div>
+
+                    <span class="safe-label" id="safetyLabel">
+                        SAFE
+                    </span>
+
+                </div>
+
+
+                <div class="safety-main">
+
+                    <div class="safety-circle">
+
+                        <i class="fa-solid fa-shield-halved"></i>
+
+                        <strong id="tiltValue">
+                            1.8°
+                        </strong>
+
+                        <span>Current Tilt</span>
+
+                    </div>
+
+                    <div class="axis-data">
+
+                        <div>
+                            <span>X-Axis</span>
+                            <strong id="axisX">0.8°</strong>
+                        </div>
+
+                        <div>
+                            <span>Y-Axis</span>
+                            <strong id="axisY">1.2°</strong>
+                        </div>
+
+                        <div>
+                            <span>Z-Axis</span>
+                            <strong id="axisZ">0.4°</strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="alert-box" id="alertBox">
+
+                    <i class="fa-solid fa-circle-check"></i>
+
+                    <div>
+                        <strong>No Structural Alert</strong>
+                        <p>MPU6050 readings are within safe limits.</p>
+                    </div>
+
+                </div>
+
+                <div class="buzzer-status">
+
+                    <span>
+                        <i class="fa-solid fa-volume-high"></i>
+                        Buzzer
+                    </span>
+
+                    <strong id="buzzerStatus">
+                        OFF
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= ENERGY SUMMARY ================= -->
+
+        <section class="summary-grid">
+
+            <div class="summary-card">
+                <i class="fa-solid fa-bolt"></i>
+
+                <div>
+                    <small>TODAY'S GENERATION</small>
+                    <strong id="dailyGeneration">2.84 kWh</strong>
+                </div>
+            </div>
+
+
+            <div class="summary-card">
+                <i class="fa-solid fa-chart-line"></i>
+
+                <div>
+                    <small>TODAY'S CONSUMPTION</small>
+                    <strong id="dailyConsumption">1.26 kWh</strong>
+                </div>
+            </div>
+
+
+            <div class="summary-card">
+                <i class="fa-solid fa-coins"></i>
+
+                <div>
+                    <small>ESTIMATED ENERGY COST</small>
+                    <strong id="energyCost">₹10.71</strong>
+                </div>
+            </div>
+
+
+            <div class="summary-card">
+                <i class="fa-solid fa-leaf"></i>
+
+                <div>
+                    <small>CO₂ SAVED</small>
+                    <strong id="co2Saved">1.31 kg</strong>
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- ================= COMMUNICATION ================= -->
+
+        <section class="panel communication" id="communication">
+
+            <div class="panel-header">
+
+                <div>
+                    <p class="eyebrow">WIRELESS NETWORK</p>
+                    <h2>LoRa Communication</h2>
+                </div>
+
+                <span class="connected-badge">
+                    <span></span>
+                    CONNECTED
+                </span>
+
+            </div>
+
+
+            <div class="communication-grid">
+
+                <div>
+                    <small>NODE ID</small>
+                    <strong id="nodeId">SP-001</strong>
+                </div>
+
+                <div>
+                    <small>RSSI</small>
+                    <strong id="rssi">-72 dBm</strong>
+                </div>
+
+                <div>
+                    <small>PACKET COUNT</small>
+                    <strong id="packetCount">1,284</strong>
+                </div>
+
+                <div>
+                    <small>PACKET LOSS</small>
+                    <strong id="packetLoss">0.4%</strong>
+                </div>
+
+                <div>
+                    <small>DATA UPDATE</small>
+                    <strong>2 sec</strong>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- FOOTER -->
+
+        <footer>
+            <span>
+                Smart Pole Monitoring System
+            </span>
+
+            <span>
+                Arduino + MPU6050 + LoRa
+            </span>
+        </footer>
+
+    </main>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
