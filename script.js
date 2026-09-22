@@ -1,17 +1,36 @@
 /* ============================================================
    SMART POLE MONITORING SYSTEM
-   VIKRAMA - SIH 2026
+   Professional Navy Blue Dashboard
+   ============================================================
 
-   Sensors:
-   MPU6050        -> Pole Tilt
-   Ultrasonic     -> Conductor Sag
-   ACS712         -> Leakage Current
+   MONITORED PARAMETERS
+   --------------------
+   Pole Tilt          : Maximum 30°
+   Conductor Sag      : Maximum +2 mm
+   Leakage Current    : 0 A target
 
-   Energy:
-   Solar Panel    -> Battery Charging + System Load
-   Battery        -> Night-time System Supply
+   POWER MANAGEMENT
+   ----------------
+   Day   : Solar → Load + Battery Charging
+   Night : Battery → Load
 
-   ============================================================ */
+   COMMUNICATION
+   -------------
+   LoRa
+
+   HARDWARE CONCEPT
+   ----------------
+   Arduino / Controller
+        ↓
+   Sensors
+        ↓
+   LoRa
+        ↓
+   Gateway / Backend
+        ↓
+   Dashboard
+
+============================================================ */
 
 
 /* ============================================================
@@ -20,20 +39,17 @@
 
 const THRESHOLDS = {
 
-    // Maximum acceptable pole tilt
-    tilt: 30.0,
+    tilt: 30.0,       // degrees
 
-    // Maximum conductor sag deviation
-    sag: 2.0,
+    sag: 2.0,         // mm
 
-    // No leakage current should be flowing through pole
-    leakage: 0.0
+    leakage: 0.0      // amperes
 
 };
 
 
 /* ============================================================
-   SIMULATED SENSOR DATA
+   SENSOR DATA
 ============================================================ */
 
 let sensorData = {
@@ -42,7 +58,7 @@ let sensorData = {
 
     tilt: 3.8,
 
-    sag: 0.8,
+    sag: 0.80,
 
     leakage: 0.00,
 
@@ -68,12 +84,25 @@ let sensorData = {
 
 
 /* ============================================================
-   DOM HELPER
+   HELPER
 ============================================================ */
 
 function get(id) {
 
     return document.getElementById(id);
+
+}
+
+
+function setText(id, value) {
+
+    const element = get(id);
+
+    if (element) {
+
+        element.textContent = value;
+
+    }
 
 }
 
@@ -113,6 +142,8 @@ navButtons.forEach(button => {
             button.dataset.tab;
 
 
+        /* Remove active state */
+
         navButtons.forEach(btn => {
 
             btn.classList.remove("active");
@@ -127,11 +158,13 @@ navButtons.forEach(button => {
         });
 
 
+        /* Activate selected tab */
+
         button.classList.add("active");
 
 
         const selectedTab =
-            document.getElementById(target);
+            get(target);
 
 
         if (selectedTab) {
@@ -141,8 +174,12 @@ navButtons.forEach(button => {
         }
 
 
-        pageTitle.textContent =
-            pageTitles[target];
+        if (pageTitle) {
+
+            pageTitle.textContent =
+                pageTitles[target] || "Dashboard";
+
+        }
 
     });
 
@@ -155,9 +192,7 @@ navButtons.forEach(button => {
 
 function updateClock() {
 
-    const now =
-        new Date();
-
+    const now = new Date();
 
     const time =
         now.toLocaleTimeString(
@@ -168,23 +203,66 @@ function updateClock() {
         );
 
 
-    if (get("clock")) {
-
-        get("clock").textContent =
-            time;
-
-    }
+    setText(
+        "clock",
+        time
+    );
 
 }
 
 
-setInterval(updateClock, 1000);
-
 updateClock();
+
+setInterval(
+    updateClock,
+    1000
+);
 
 
 /* ============================================================
-   RANDOM SENSOR SIMULATION
+   POLE SELECTOR
+============================================================ */
+
+const poleSelect =
+    get("poleSelect");
+
+
+if (poleSelect) {
+
+    poleSelect.addEventListener(
+        "change",
+        function () {
+
+            sensorData.poleId =
+                this.value;
+
+
+            updatePoleID();
+
+        }
+    );
+
+}
+
+
+function updatePoleID() {
+
+    setText(
+        "nodeId",
+        sensorData.poleId
+    );
+
+
+    setText(
+        "dashboardPole",
+        sensorData.poleId
+    );
+
+}
+
+
+/* ============================================================
+   SENSOR SIMULATION
 ============================================================ */
 
 function randomVariation(
@@ -203,45 +281,86 @@ function randomVariation(
 
 
 /* ============================================================
-   SIMULATE SENSOR DATA
+   GENERATE SIMULATED SENSOR VALUES
 ============================================================ */
 
 function simulateSensors() {
+
+    /* ------------------------------------------
+       POLE TILT
+    ------------------------------------------ */
 
     sensorData.tilt =
         Math.max(
             0,
             randomVariation(
                 sensorData.tilt,
-                0.8
+                0.7
             )
         );
 
+
+    /*
+       Occasionally generate a dangerous
+       tilt value so the alert system can
+       be tested.
+    */
+
+    if (Math.random() < 0.015) {
+
+        sensorData.tilt =
+            31 +
+            Math.random() * 5;
+
+    }
+
+
+    /* ------------------------------------------
+       CONDUCTOR SAG
+    ------------------------------------------ */
 
     sensorData.sag =
         Math.max(
             0,
             randomVariation(
                 sensorData.sag,
-                0.12
+                0.10
             )
         );
 
 
     /*
-       Normally leakage should remain 0.
-
-       Occasionally a very small simulated
-       leakage value is generated so that
-       the dashboard alert system can be tested.
+       Occasionally simulate excessive sag.
     */
 
-    if (Math.random() < 0.03) {
+    if (Math.random() < 0.015) {
+
+        sensorData.sag =
+            2.1 +
+            Math.random() * 0.8;
+
+    }
+
+
+    /* ------------------------------------------
+       LEAKAGE CURRENT
+    ------------------------------------------ */
+
+    /*
+       Normal condition = 0 A.
+
+       Small probability of leakage is generated
+       only to test the dashboard alert.
+    */
+
+    if (Math.random() < 0.025) {
 
         sensorData.leakage =
             Number(
-                (Math.random() * 0.15)
-                .toFixed(2)
+                (
+                    0.01 +
+                    Math.random() * 0.15
+                ).toFixed(2)
             );
 
     } else {
@@ -250,6 +369,10 @@ function simulateSensors() {
 
     }
 
+
+    /* ------------------------------------------
+       BATTERY
+    ------------------------------------------ */
 
     sensorData.batteryVoltage =
         randomVariation(
@@ -268,6 +391,14 @@ function simulateSensors() {
         );
 
 
+    /*
+       Approximate battery percentage
+       for the dashboard display.
+
+       7.1 V = 0%
+       8.4 V = 100%
+    */
+
     sensorData.batteryPercent =
         Math.round(
             (
@@ -275,13 +406,24 @@ function simulateSensors() {
                     sensorData.batteryVoltage -
                     7.1
                 ) /
-                (
-                    8.4 -
-                    7.1
-                )
+                1.3
             ) * 100
         );
 
+
+    sensorData.batteryPercent =
+        Math.max(
+            0,
+            Math.min(
+                100,
+                sensorData.batteryPercent
+            )
+        );
+
+
+    /* ------------------------------------------
+       SOLAR POWER
+    ------------------------------------------ */
 
     sensorData.solarPower =
         Math.max(
@@ -293,6 +435,10 @@ function simulateSensors() {
         );
 
 
+    /* ------------------------------------------
+       LOAD
+    ------------------------------------------ */
+
     sensorData.loadPower =
         Math.max(
             5,
@@ -303,12 +449,20 @@ function simulateSensors() {
         );
 
 
+    /* ------------------------------------------
+       TEMPERATURE
+    ------------------------------------------ */
+
     sensorData.temperature =
         randomVariation(
             sensorData.temperature,
             0.3
         );
 
+
+    /* ------------------------------------------
+       LoRa
+    ------------------------------------------ */
 
     sensorData.rssi =
         Math.round(
@@ -333,16 +487,22 @@ function simulateSensors() {
         );
 
 
+    /* ------------------------------------------
+       UPDATE DASHBOARD
+    ------------------------------------------ */
+
     updateAllDisplays();
 
 }
 
 
 /* ============================================================
-   UPDATE ALL DASHBOARD VALUES
+   UPDATE EVERYTHING
 ============================================================ */
 
 function updateAllDisplays() {
+
+    updatePoleID();
 
     updateDashboard();
 
@@ -363,6 +523,8 @@ function updateAllDisplays() {
 
 function updateDashboard() {
 
+    /* Battery */
+
     setText(
         "batteryVoltage",
         sensorData.batteryVoltage.toFixed(2)
@@ -375,11 +537,15 @@ function updateDashboard() {
     );
 
 
+    /* Solar */
+
     setText(
         "solarPower",
         sensorData.solarPower.toFixed(1)
     );
 
+
+    /* Load */
 
     setText(
         "loadPower",
@@ -387,17 +553,27 @@ function updateDashboard() {
     );
 
 
+    /* Temperature */
+
     setText(
         "temperature",
         sensorData.temperature.toFixed(1)
     );
 
 
+    /* Last update */
+
     setText(
         "lastUpdate",
-        new Date().toLocaleTimeString("en-IN")
+        new Date().toLocaleTimeString(
+            "en-IN"
+        )
     );
 
+
+    /* ------------------------------------------
+       DASHBOARD SAFETY VALUES
+    ------------------------------------------ */
 
     setText(
         "dashboardTilt",
@@ -416,11 +592,80 @@ function updateDashboard() {
         sensorData.leakage.toFixed(2) + " A"
     );
 
+
+    /* ------------------------------------------
+       SAFETY COLOURS ON DASHBOARD
+    ------------------------------------------ */
+
+    const leakage =
+        get("dashboardLeakage");
+
+
+    if (leakage) {
+
+        leakage.classList.remove(
+            "green",
+            "red"
+        );
+
+
+        if (
+            sensorData.leakage >
+            THRESHOLDS.leakage
+        ) {
+
+            leakage.classList.add("red");
+
+        } else {
+
+            leakage.classList.add("green");
+
+        }
+
+    }
+
+
+    /* ------------------------------------------
+       OVERALL SAFETY
+    ------------------------------------------ */
+
+    const safe =
+        checkSystemSafety();
+
+
+    setText(
+        "overviewSafety",
+        safe
+            ? "Normal"
+            : "Alert"
+    );
+
+
+    const overview =
+        get("overviewSafety");
+
+
+    if (overview) {
+
+        overview.classList.remove(
+            "green",
+            "red"
+        );
+
+
+        overview.classList.add(
+            safe
+                ? "green"
+                : "red"
+        );
+
+    }
+
 }
 
 
 /* ============================================================
-   SAFETY MONITORING
+   SAFETY TAB
 ============================================================ */
 
 function updateSafety() {
@@ -435,9 +680,9 @@ function updateSafety() {
         sensorData.leakage;
 
 
-    /* -----------------------------
+    /* ========================================================
        TILT
-    ----------------------------- */
+    ======================================================== */
 
     setText(
         "tiltValue",
@@ -445,46 +690,73 @@ function updateSafety() {
     );
 
 
-    const tiltProgress =
+    /*
+       IMPORTANT:
+       The progress bar reaches 100%
+       at the 30° threshold.
+    */
+
+    const tiltPercentage =
         Math.min(
-            (tilt /
-                THRESHOLDS.tilt) *
-            100,
+            (
+                tilt /
+                THRESHOLDS.tilt
+            ) * 100,
             100
         );
 
 
-    const progress =
+    const tiltProgress =
         get("tiltProgress");
 
 
-    if (progress) {
+    if (tiltProgress) {
 
-        progress.style.width =
-            tiltProgress + "%";
+        tiltProgress.style.width =
+            tiltPercentage + "%";
+
+
+        if (
+            tilt >=
+            THRESHOLDS.tilt
+        ) {
+
+            tiltProgress.style.background =
+                "#ef4444";
+
+        } else if (
+            tilt >=
+            THRESHOLDS.tilt * 0.7
+        ) {
+
+            tiltProgress.style.background =
+                "#f59e0b";
+
+        } else {
+
+            tiltProgress.style.background =
+                "#22c55e";
+
+        }
 
     }
 
 
-    /* -----------------------------
+    /* ========================================================
        TILT STATUS
-    ----------------------------- */
-
-    let tiltOK =
-        tilt < THRESHOLDS.tilt;
-
+    ======================================================== */
 
     setStatus(
         "tiltStatus",
-        tiltOK,
+        tilt < THRESHOLDS.tilt,
         "NORMAL",
         "ALERT"
     );
 
 
-    /* -----------------------------
+    /* ========================================================
        SAG
-    ----------------------------- */
+    ======================================================== */
 
     setText(
         "sagValue",
@@ -500,9 +772,9 @@ function updateSafety() {
     );
 
 
-    /* -----------------------------
+    /* ========================================================
        LEAKAGE
-    ----------------------------- */
+    ======================================================== */
 
     setText(
         "leakageValue",
@@ -518,23 +790,55 @@ function updateSafety() {
     );
 
 
-    /* -----------------------------
+    /* ========================================================
+       LEAKAGE VALUE COLOR
+    ======================================================== */
+
+    const leakageValue =
+        get("leakageValue");
+
+
+    if (leakageValue) {
+
+        leakageValue.classList.remove(
+            "leakage-safe",
+            "leakage-warning"
+        );
+
+
+        if (
+            leakage >
+            THRESHOLDS.leakage
+        ) {
+
+            leakageValue.classList.add(
+                "leakage-warning"
+            );
+
+        } else {
+
+            leakageValue.classList.add(
+                "leakage-safe"
+            );
+
+        }
+
+    }
+
+
+    /* ========================================================
        OVERALL SAFETY
-    ----------------------------- */
+    ======================================================== */
 
     const systemSafe =
-        tiltOK &&
-        sag <= THRESHOLDS.sag &&
-        leakage <= THRESHOLDS.leakage;
+        checkSystemSafety();
 
 
     const safetyTitle =
         get("safetyStatus");
 
-
     const safetyText =
         get("safetyText");
-
 
     const safetyIcon =
         document.querySelector(
@@ -610,6 +914,36 @@ function updateSafety() {
 
 
 /* ============================================================
+   CHECK OVERALL SAFETY
+============================================================ */
+
+function checkSystemSafety() {
+
+    const tiltSafe =
+        sensorData.tilt <
+        THRESHOLDS.tilt;
+
+
+    const sagSafe =
+        sensorData.sag <=
+        THRESHOLDS.sag;
+
+
+    const leakageSafe =
+        sensorData.leakage <=
+        THRESHOLDS.leakage;
+
+
+    return (
+        tiltSafe &&
+        sagSafe &&
+        leakageSafe
+    );
+
+}
+
+
+/* ============================================================
    FAULT MESSAGE
 ============================================================ */
 
@@ -617,6 +951,8 @@ function getFaultMessage() {
 
     const faults = [];
 
+
+    /* Tilt */
 
     if (
         sensorData.tilt >=
@@ -630,6 +966,8 @@ function getFaultMessage() {
     }
 
 
+    /* Sag */
+
     if (
         sensorData.sag >
         THRESHOLDS.sag
@@ -642,6 +980,8 @@ function getFaultMessage() {
     }
 
 
+    /* Leakage */
+
     if (
         sensorData.leakage >
         THRESHOLDS.leakage
@@ -650,6 +990,13 @@ function getFaultMessage() {
         faults.push(
             "Leakage current detected"
         );
+
+    }
+
+
+    if (faults.length === 0) {
+
+        return "System normal.";
 
     }
 
@@ -679,6 +1026,7 @@ function updateBuzzer(alert) {
             "ON"
         );
 
+
         setText(
             "safetyBuzzer",
             "ON"
@@ -687,16 +1035,26 @@ function updateBuzzer(alert) {
 
         if (buzzer) {
 
-            buzzer.className =
-                "red";
+            buzzer.classList.remove(
+                "green"
+            );
+
+            buzzer.classList.add(
+                "red"
+            );
 
         }
 
 
         if (safetyBuzzer) {
 
-            safetyBuzzer.className =
-                "red";
+            safetyBuzzer.classList.remove(
+                "green"
+            );
+
+            safetyBuzzer.classList.add(
+                "red"
+            );
 
         }
 
@@ -707,6 +1065,7 @@ function updateBuzzer(alert) {
             "OFF"
         );
 
+
         setText(
             "safetyBuzzer",
             "OFF"
@@ -715,16 +1074,26 @@ function updateBuzzer(alert) {
 
         if (buzzer) {
 
-            buzzer.className =
-                "green";
+            buzzer.classList.remove(
+                "red"
+            );
+
+            buzzer.classList.add(
+                "green"
+            );
 
         }
 
 
         if (safetyBuzzer) {
 
-            safetyBuzzer.className =
-                "green";
+            safetyBuzzer.classList.remove(
+                "red"
+            );
+
+            safetyBuzzer.classList.add(
+                "green"
+            );
 
         }
 
@@ -734,10 +1103,12 @@ function updateBuzzer(alert) {
 
 
 /* ============================================================
-   ENERGY MANAGEMENT
+   ENERGY
 ============================================================ */
 
 function updateEnergy() {
+
+    /* Current solar power */
 
     setText(
         "energySolar",
@@ -746,6 +1117,8 @@ function updateEnergy() {
     );
 
 
+    /* Battery voltage */
+
     setText(
         "energyBattery",
         sensorData.batteryVoltage.toFixed(2) +
@@ -753,17 +1126,45 @@ function updateEnergy() {
     );
 
 
+    /* Load */
+
     setText(
         "energyLoad",
         sensorData.loadPower.toFixed(1) +
         " W"
     );
 
+
+    /* Battery percentage */
+
+    setText(
+        "energyBatteryPercent",
+        sensorData.batteryPercent
+    );
+
+
+    /*
+       Approximate daily energy values
+       for the simulation dashboard.
+    */
+
+    const solarEnergy =
+        (
+            sensorData.solarPower *
+            0.1
+        ).toFixed(2);
+
+
+    setText(
+        "energySolarValue",
+        solarEnergy
+    );
+
 }
 
 
 /* ============================================================
-   DAY / NIGHT POWER MANAGEMENT
+   DAY / NIGHT POWER MODE
 ============================================================ */
 
 function updatePowerMode() {
@@ -783,18 +1184,23 @@ function updatePowerMode() {
 
 
     /*
-       Day:
-       Solar powers system
-       + charges battery.
+       06:00 - 17:59
+       DAY MODE
 
-       Night:
-       Battery powers system.
+       18:00 - 05:59
+       NIGHT MODE
     */
 
-    if (
+    const dayMode =
         hour >= 6 &&
-        hour < 18
-    ) {
+        hour < 18;
+
+
+    if (dayMode) {
+
+        /* ------------------------------------------
+           DAY
+        ------------------------------------------ */
 
         if (modeTitle) {
 
@@ -815,304 +1221,4 @@ function updatePowerMode() {
         if (modeIcon) {
 
             modeIcon.innerHTML =
-                '<i class="fa-solid fa-sun"></i>';
-
-        }
-
-    } else {
-
-        if (modeTitle) {
-
-            modeTitle.textContent =
-                "NIGHT MODE • BATTERY POWER";
-
-        }
-
-
-        if (modeText) {
-
-            modeText.textContent =
-                "Solar generation is unavailable. Battery is supplying the system.";
-
-        }
-
-
-        if (modeIcon) {
-
-            modeIcon.innerHTML =
-                '<i class="fa-solid fa-battery-half"></i>';
-
-        }
-
-    }
-
-}
-
-
-/* ============================================================
-   COMMUNICATION
-============================================================ */
-
-function updateCommunication() {
-
-    setText(
-        "nodeId",
-        sensorData.poleId
-    );
-
-
-    setText(
-        "rssi",
-        sensorData.rssi +
-        " dBm"
-    );
-
-
-    setText(
-        "packets",
-        sensorData.packets.toLocaleString()
-    );
-
-
-    setText(
-        "packetLoss",
-        sensorData.packetLoss +
-        "%"
-    );
-
-
-    const communicationStatus =
-        get("communicationStatus");
-
-
-    if (
-        sensorData.loraConnected
-    ) {
-
-        if (communicationStatus) {
-
-            communicationStatus.textContent =
-                "CONNECTED";
-
-            communicationStatus.style.color =
-                "#22c55e";
-
-        }
-
-    } else {
-
-        if (communicationStatus) {
-
-            communicationStatus.textContent =
-                "DISCONNECTED";
-
-            communicationStatus.style.color =
-                "#ef4444";
-
-        }
-
-    }
-
-}
-
-
-/* ============================================================
-   POLE SELECTOR
-============================================================ */
-
-const poleSelect =
-    get("poleSelect");
-
-
-if (poleSelect) {
-
-    poleSelect.addEventListener(
-        "change",
-        () => {
-
-            sensorData.poleId =
-                poleSelect.value;
-
-
-            setText(
-                "nodeId",
-                sensorData.poleId
-            );
-
-        }
-    );
-
-}
-
-
-/* ============================================================
-   HELPER: SET TEXT
-============================================================ */
-
-function setText(
-    id,
-    value
-) {
-
-    const element =
-        get(id);
-
-
-    if (element) {
-
-        element.textContent =
-            value;
-
-    }
-
-}
-
-
-/* ============================================================
-   HELPER: STATUS
-============================================================ */
-
-function setStatus(
-    id,
-    normal,
-    normalText,
-    alertText
-) {
-
-    const element =
-        get(id);
-
-
-    if (!element) {
-
-        return;
-
-    }
-
-
-    element.textContent =
-        normal
-            ? normalText
-            : alertText;
-
-
-    element.classList.remove(
-        "green",
-        "red",
-        "yellow"
-    );
-
-
-    element.classList.add(
-        normal
-            ? "green"
-            : "red"
-    );
-
-}
-
-
-/* ============================================================
-   START SYSTEM
-============================================================ */
-
-updateAllDisplays();
-
-
-/*
-   Update every 2.5 seconds.
-
-   In the final hardware version,
-   replace simulateSensors() with
-   actual ESP32/LoRa/API data.
-*/
-
-setInterval(
-    simulateSensors,
-    2500
-);
-
-
-/* ============================================================
-   REAL DATA FORMAT
-============================================================
-
-   Your ESP32/LoRa gateway/backend can eventually
-   send data in this format:
-
-   {
-       "poleId": "SP-001",
-
-       "tilt": 4.7,
-
-       "sag": 1.2,
-
-       "leakage": 0.00,
-
-       "batteryVoltage": 7.82,
-
-       "batteryPercent": 82,
-
-       "solarPower": 48.5,
-
-       "loadPower": 21.4,
-
-       "temperature": 29.4,
-
-       "loraConnected": true,
-
-       "rssi": -67,
-
-       "packets": 1284,
-
-       "packetLoss": 0.8
-   }
-
-   ============================================================ */
-
-
-/* ============================================================
-   SAFETY LOGIC FOR REAL HARDWARE
-============================================================
-
-   POLE TILT:
-
-   tilt < 30°
-       -> NORMAL
-
-   tilt >= 30°
-       -> ALERT
-       -> BUZZER ON
-
-
-   CONDUCTOR SAG:
-
-   sag <= +2 mm
-       -> NORMAL
-
-   sag > +2 mm
-       -> ALERT
-       -> BUZZER ON
-
-
-   LEAKAGE CURRENT:
-
-   leakage = 0 A
-       -> SAFE
-
-   leakage > 0 A
-       -> LEAKAGE DETECTED
-       -> ALERT
-       -> BUZZER ON
-
-
-   POWER:
-
-   DAY:
-       Solar -> Load
-       Solar -> Battery
-
-   NIGHT:
-       Battery -> Load
-
-============================================================ */
+                '<i c
