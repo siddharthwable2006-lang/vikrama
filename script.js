@@ -1,10 +1,49 @@
-/* =====================================================
+/* =========================================
    SMART POLE DASHBOARD
-   Demo / Simulation JavaScript
-   ===================================================== */
+   ========================================= */
 
 
-/* ---------- LIVE CLOCK ---------- */
+// ================= TAB SYSTEM =================
+
+const navButtons = document.querySelectorAll(".nav-btn");
+const tabs = document.querySelectorAll(".tab-content");
+const pageTitle = document.getElementById("pageTitle");
+
+const titles = {
+    dashboard: "Dashboard",
+    energy: "Energy Management",
+    safety: "Safety Monitoring",
+    communication: "Communication"
+};
+
+navButtons.forEach(button => {
+
+    button.addEventListener("click", () => {
+
+        const target = button.dataset.tab;
+
+        // Remove active from buttons
+        navButtons.forEach(btn => {
+            btn.classList.remove("active");
+        });
+
+        // Hide all tabs
+        tabs.forEach(tab => {
+            tab.classList.remove("active");
+        });
+
+        // Activate selected
+        button.classList.add("active");
+
+        document.getElementById(target).classList.add("active");
+
+        pageTitle.textContent = titles[target];
+    });
+
+});
+
+
+// ================= CLOCK =================
 
 function updateClock() {
 
@@ -14,283 +53,229 @@ function updateClock() {
         hour12: false
     });
 
-    const date = now.toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-    });
-
-    document.getElementById("time").textContent = time;
-    document.getElementById("date").textContent = date;
+    document.getElementById("clock").textContent = time;
 }
 
 setInterval(updateClock, 1000);
+
 updateClock();
 
 
-/* ---------- ELEMENTS ---------- */
+// ================= DATA =================
 
-const batteryPercent =
-    document.getElementById("batteryPercent");
+let battery = 7.82;
+let batteryPercent = 82;
+let solar = 42.6;
+let load = 18.4;
+let temperature = 29.4;
+let tilt = 1.8;
 
-const batteryBar =
-    document.getElementById("batteryBar");
+let packets = 1284;
 
-const batteryVoltage =
-    document.getElementById("batteryVoltage");
 
-const solarPower =
-    document.getElementById("solarPower");
+// ================= RANDOM DATA =================
 
-const solarVoltage =
-    document.getElementById("solarVoltage");
+function randomChange(value, amount) {
 
-const solarCurrent =
-    document.getElementById("solarCurrent");
+    return value + (Math.random() * amount * 2 - amount);
 
-const loadPower =
-    document.getElementById("loadPower");
+}
 
-const loadVoltage =
-    document.getElementById("loadVoltage");
 
-const loadCurrent =
-    document.getElementById("loadCurrent");
+// ================= UPDATE DASHBOARD =================
 
-const temperature =
-    document.getElementById("temperature");
+function updateDashboard() {
 
-const tiltValue =
-    document.getElementById("tiltValue");
+    battery = randomChange(battery, 0.03);
+    solar = Math.max(0, randomChange(solar, 2));
+    load = Math.max(5, randomChange(load, 1.2));
+    temperature = randomChange(temperature, 0.4);
+    tilt = Math.max(0, randomChange(tilt, 0.25));
 
-const axisX =
-    document.getElementById("axisX");
+    battery = Math.max(7.1, Math.min(8.4, battery));
 
-const axisY =
-    document.getElementById("axisY");
+    batteryPercent = ((battery - 7.1) / (8.4 - 7.1)) * 100;
 
-const axisZ =
-    document.getElementById("axisZ");
+    batteryPercent = Math.round(
+        Math.max(0, Math.min(100, batteryPercent))
+    );
 
-const buzzerStatus =
-    document.getElementById("buzzerStatus");
 
-const safetyLabel =
-    document.getElementById("safetyLabel");
+    // Dashboard
+    document.getElementById("batteryVoltage").textContent =
+        battery.toFixed(2);
 
-const alertBox =
-    document.getElementById("alertBox");
+    document.getElementById("batteryPercent").textContent =
+        batteryPercent;
+
+    document.getElementById("solarPower").textContent =
+        solar.toFixed(1);
+
+    document.getElementById("loadPower").textContent =
+        load.toFixed(1);
+
+    document.getElementById("temperature").textContent =
+        temperature.toFixed(1);
+
+
+    // Energy
+    document.getElementById("energySolar").textContent =
+        solar.toFixed(1) + " W";
+
+    document.getElementById("energyBattery").textContent =
+        battery.toFixed(2) + " V";
+
+    document.getElementById("energyLoad").textContent =
+        load.toFixed(1) + " W";
+
+
+    // Time
+    document.getElementById("lastUpdate").textContent =
+        new Date().toLocaleTimeString("en-IN");
+
+
+    // Packets
+    packets += Math.floor(Math.random() * 3);
+
+    document.getElementById("packets").textContent =
+        packets.toLocaleString();
+
+
+    // RSSI
+    const rssi = Math.floor(-62 - Math.random() * 15);
+
+    document.getElementById("rssi").textContent =
+        rssi + " dBm";
+
+
+    // Packet loss
+    const packetLoss =
+        (Math.random() * 1.5).toFixed(1);
+
+    document.getElementById("packetLoss").textContent =
+        packetLoss + "%";
+
+
+    updateSafety();
+}
+
+
+// ================= SAFETY =================
+
+function updateSafety() {
+
+    document.getElementById("tiltValue").textContent =
+        tilt.toFixed(1) + "°";
+
+
+    let progress =
+        Math.min((tilt / 10) * 100, 100);
+
+    document.getElementById("tiltProgress").style.width =
+        progress + "%";
+
+
+    const safetyStatus =
+        document.getElementById("safetyStatus");
+
+    const safetyBuzzer =
+        document.getElementById("safetyBuzzer");
+
+    const buzzerStatus =
+        document.getElementById("buzzerStatus");
+
+
+    if (tilt >= 8) {
+
+        safetyStatus.textContent =
+            "SAFETY ALERT";
+
+        safetyStatus.style.color =
+            "#ef4444";
+
+        safetyBuzzer.textContent =
+            "ON";
+
+        safetyBuzzer.style.color =
+            "#ef4444";
+
+        buzzerStatus.textContent =
+            "ON";
+
+        buzzerStatus.style.color =
+            "#ef4444";
+
+    } else {
+
+        safetyStatus.textContent =
+            "SYSTEM SAFE";
+
+        safetyStatus.style.color =
+            "#22c55e";
+
+        safetyBuzzer.textContent =
+            "OFF";
+
+        safetyBuzzer.style.color =
+            "#22c55e";
+
+        buzzerStatus.textContent =
+            "OFF";
+
+        buzzerStatus.style.color =
+            "#22c55e";
+    }
+
+}
+
+
+// ================= POLE SELECTION =================
 
 const poleSelect =
     document.getElementById("poleSelect");
 
-const nodeId =
-    document.getElementById("nodeId");
-
-
-/* ---------- RANDOM VALUE ---------- */
-
-function random(min, max) {
-    return Math.random() * (max - min) + min;
-}
-
-
-/* ---------- SIMULATE SENSOR DATA ---------- */
-
-function updateDashboard() {
-
-    /*
-       Battery
-    */
-
-    let battery =
-        Math.round(random(76, 88));
-
-    batteryPercent.textContent = battery;
-    batteryBar.style.width = battery + "%";
-
-    batteryVoltage.textContent =
-        random(7.55, 8.15).toFixed(2) + " V";
-
-
-    /*
-       Solar
-    */
-
-    let solar =
-        random(30, 55);
-
-    let solarV =
-        random(9.5, 11.5);
-
-    let solarI =
-        solar / solarV;
-
-    solarPower.textContent =
-        solar.toFixed(1);
-
-    solarVoltage.textContent =
-        solarV.toFixed(1) + " V";
-
-    solarCurrent.textContent =
-        solarI.toFixed(2) + " A";
-
-
-    /*
-       Load
-    */
-
-    let load =
-        random(12, 22);
-
-    let loadV =
-        random(4.9, 5.1);
-
-    let loadI =
-        load / loadV;
-
-    loadPower.textContent =
-        load.toFixed(1);
-
-    loadVoltage.textContent =
-        loadV.toFixed(2) + " V";
-
-    loadCurrent.textContent =
-        loadI.toFixed(2) + " A";
-
-
-    /*
-       Temperature
-    */
-
-    temperature.textContent =
-        random(27, 33).toFixed(1);
-
-
-    /*
-       MPU6050
-    */
-
-    let x = random(-2, 2);
-    let y = random(-2, 2);
-    let z = random(-1, 1);
-
-    let tilt =
-        Math.sqrt(x * x + y * y);
-
-    axisX.textContent =
-        x.toFixed(1) + "°";
-
-    axisY.textContent =
-        y.toFixed(1) + "°";
-
-    axisZ.textContent =
-        z.toFixed(1) + "°";
-
-    tiltValue.textContent =
-        tilt.toFixed(1) + "°";
-
-
-    /*
-       Safety condition
-    */
-
-    if (tilt > 8) {
-
-        safetyLabel.textContent = "ALERT";
-
-        safetyLabel.style.color = "#ff6b7a";
-
-        alertBox.innerHTML = `
-            <i class="fa-solid fa-triangle-exclamation"
-               style="color:#ff6b7a"></i>
-
-            <div>
-                <strong>Structural Alert</strong>
-                <p>
-                    Excessive pole tilt detected.
-                </p>
-            </div>
-        `;
-
-        buzzerStatus.textContent = "ON";
-        buzzerStatus.style.color = "#ff6b7a";
-
-    } else {
-
-        safetyLabel.textContent = "SAFE";
-
-        safetyLabel.style.color = "";
-
-        alertBox.innerHTML = `
-            <i class="fa-solid fa-circle-check"></i>
-
-            <div>
-                <strong>No Structural Alert</strong>
-                <p>
-                    MPU6050 readings are within safe limits.
-                </p>
-            </div>
-        `;
-
-        buzzerStatus.textContent = "OFF";
-        buzzerStatus.style.color = "";
-    }
-
-
-    /*
-       Update time indicator
-    */
-
-    document.getElementById("lastUpdate").textContent =
-        "Just now";
-}
-
-
-/* ---------- POLE SELECTION ---------- */
-
-poleSelect.addEventListener("change", function () {
+poleSelect.addEventListener("change", () => {
 
     const selectedPole =
-        this.value;
+        poleSelect.value;
 
-    nodeId.textContent =
+    document.getElementById("nodeId").textContent =
         selectedPole;
-
-    /*
-       In the real system, this is where
-       you would request data for that
-       specific Pole ID from your server.
-    */
 
 });
 
 
-/* ---------- START SIMULATION ---------- */
+// ================= SIMULATION =================
 
 updateDashboard();
 
 setInterval(updateDashboard, 2500);
 
 
-/* =====================================================
-   REAL ESP8266 / ARDUINO CONNECTION
+// ============================================
+// FUTURE REAL ESP32/ARDUINO DATA FORMAT
+// ============================================
 
-   Later, replace updateDashboard() with data received
-   from your backend/API.
+/*
 
-   Example JSON:
+When your real LoRa gateway/backend is ready,
+replace the simulation above with actual data.
 
-   {
-       "poleId": "SP-001",
-       "batteryVoltage": 7.82,
-       "batteryPercent": 82,
-       "solarPower": 42.6,
-       "loadPower": 18.4,
-       "temperature": 29.4,
-       "tilt": 1.8,
-       "buzzer": false,
-       "lora": true
-   }
+Example JSON:
 
-   ===================================================== */
+{
+    "poleId": "SP-001",
+    "batteryVoltage": 7.82,
+    "batteryPercent": 82,
+    "solarPower": 42.6,
+    "loadPower": 18.4,
+    "temperature": 29.4,
+    "tilt": 1.8,
+    "buzzer": false,
+    "lora": true,
+    "rssi": -67,
+    "packets": 1284,
+    "packetLoss": 0.8
+}
+
+*/
