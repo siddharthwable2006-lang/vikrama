@@ -1,367 +1,481 @@
 /* =========================================================
    SMART POLE MONITORING DASHBOARD
-   Complete JavaScript
+   CLEAN JAVASCRIPT
    ========================================================= */
 
-// =========================
-// SAFETY THRESHOLDS
-// =========================
-const THRESHOLDS = {
-    tilt: 30.0,       // Maximum tilt in degrees
-    sag: 2.0,         // Maximum sag in mm
-    leakage: 0.0      // Leakage target
+
+/* =========================================================
+   SAFETY LIMITS
+   ========================================================= */
+
+const LIMITS = {
+
+    tilt: 30,
+
+    sag: 2,
+
+    leakage: 0
+
 };
 
 
-// =========================
-// SENSOR DATA
-// =========================
-let sensorData = {
+/* =========================================================
+   CURRENT DATA
+   ========================================================= */
+
+let data = {
+
     poleId: "SP-001",
 
-    // Safety
-    tilt: 3.8,
-    sag: 0.80,
-    leakage: 0.00,
+    tilt: 5.2,
 
-    // Energy
+    sag: 0.85,
+
+    leakage: 0,
+
     batteryVoltage: 7.82,
+
     batteryPercent: 82,
+
     solarPower: 48.5,
+
     loadPower: 21.4,
+
     temperature: 29.4,
 
-    // Communication
-    loraConnected: true,
-    rssi: -67,
+    rssi: -64,
+
     packets: 1284,
-    packetLoss: 0.8
+
+    packetLoss: 0.4,
+
+    loraConnected: true
+
 };
 
 
-// =========================
-// HELPER FUNCTIONS
-// =========================
-function get(id) {
-    return document.getElementById(id);
-}
+/* =========================================================
+   HELPER
+   ========================================================= */
 
 function setText(id, value) {
-    const element = get(id);
+
+    const element = document.getElementById(id);
 
     if (element) {
+
         element.textContent = value;
+
     }
+
 }
 
 
-// =========================
-// TAB SYSTEM
-// =========================
-const navButtons = document.querySelectorAll(".nav-btn");
-const tabContents = document.querySelectorAll(".tab-content");
-const pageTitle = get("pageTitle");
+/* =========================================================
+   TAB SWITCHING
+   ========================================================= */
 
-navButtons.forEach(button => {
+const buttons =
+    document.querySelectorAll(".nav-btn");
 
-    button.addEventListener("click", () => {
+const tabs =
+    document.querySelectorAll(".tab-content");
 
-        const targetTab = button.dataset.tab;
+const pageTitle =
+    document.getElementById("pageTitle");
 
-        // Remove active class
-        navButtons.forEach(btn => {
+
+buttons.forEach(button => {
+
+    button.addEventListener("click", function () {
+
+        const target =
+            this.getAttribute("data-tab");
+
+
+        buttons.forEach(btn => {
+
             btn.classList.remove("active");
+
         });
 
-        tabContents.forEach(tab => {
+
+        tabs.forEach(tab => {
+
             tab.classList.remove("active");
+
         });
 
-        // Activate selected tab
-        button.classList.add("active");
 
-        const selectedTab = get(targetTab);
+        this.classList.add("active");
 
-        if (selectedTab) {
-            selectedTab.classList.add("active");
+
+        const targetElement =
+            document.getElementById(target);
+
+
+        if (targetElement) {
+
+            targetElement.classList.add("active");
+
         }
 
-        // Change page title
-        const title = button.querySelector("span");
 
-        if (title && pageTitle) {
-            pageTitle.textContent = title.textContent;
+        const text =
+            this.textContent.trim();
+
+
+        if (pageTitle) {
+
+            pageTitle.textContent = text;
+
         }
+
     });
 
 });
 
 
-// =========================
-// LIVE CLOCK
-// =========================
+/* =========================================================
+   CLOCK
+   ========================================================= */
+
 function updateClock() {
 
     const now = new Date();
 
-    const time = now.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit"
-    });
+    const time =
+        now.toLocaleTimeString(
+            [],
+            {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit"
+            }
+        );
 
     setText("clock", time);
+
 }
 
+
 setInterval(updateClock, 1000);
+
 updateClock();
 
 
-// =========================
-// POLE SELECTOR
-// =========================
-const poleSelect = get("poleSelect");
+/* =========================================================
+   POLE SELECTOR
+   ========================================================= */
+
+const poleSelect =
+    document.getElementById("poleSelect");
+
 
 if (poleSelect) {
 
-    poleSelect.addEventListener("change", () => {
+    poleSelect.addEventListener(
+        "change",
+        function () {
 
-        sensorData.poleId = poleSelect.value;
+            data.poleId =
+                this.value;
 
-        setText("dashboardPole", sensorData.poleId);
-        setText("nodeId", sensorData.poleId);
+            updateEverything();
 
-        updateDashboard();
-        updateSafety();
-        updateEnergy();
-        updateCommunication();
-
-    });
+        }
+    );
 
 }
 
 
-// =========================
-// SIMULATE SENSOR DATA
-// =========================
-// This is only for testing the dashboard.
-// Replace this function later with actual
-// ESP32/Arduino/LoRa data.
+/* =========================================================
+   SIMULATED DATA
+   ========================================================= */
 
-function simulateSensorData() {
+function simulateData() {
 
-    // -------------------------
-    // Tilt
-    // -------------------------
-    sensorData.tilt =
+
+    /* ---------- TILT ---------- */
+
+    data.tilt +=
+        (Math.random() - 0.5) * 1.2;
+
+
+    data.tilt =
         Math.max(
             0,
-            sensorData.tilt + (Math.random() - 0.5) * 1.5
-        );
-
-    // Rare dangerous tilt for testing
-    if (Math.random() < 0.02) {
-        sensorData.tilt = 31 + Math.random() * 5;
-    }
-
-
-    // -------------------------
-    // Conductor sag
-    // -------------------------
-    sensorData.sag =
-        Math.max(
-            0,
-            sensorData.sag + (Math.random() - 0.5) * 0.25
-        );
-
-    // Rare dangerous sag
-    if (Math.random() < 0.02) {
-        sensorData.sag = 2.1 + Math.random() * 1;
-    }
-
-
-    // -------------------------
-    // Leakage current
-    // -------------------------
-    sensorData.leakage = 0;
-
-    // Rare leakage fault
-    if (Math.random() < 0.02) {
-        sensorData.leakage =
-            0.05 + Math.random() * 0.20;
-    }
-
-
-    // -------------------------
-    // Battery voltage
-    // -------------------------
-    sensorData.batteryVoltage +=
-        (Math.random() - 0.5) * 0.08;
-
-    sensorData.batteryVoltage =
-        Math.min(
-            8.4,
-            Math.max(
-                7.1,
-                sensorData.batteryVoltage
-            )
-        );
-
-
-    // Approximate battery percentage
-    sensorData.batteryPercent =
-        ((sensorData.batteryVoltage - 7.1) /
-            (8.4 - 7.1)) * 100;
-
-    sensorData.batteryPercent =
-        Math.round(
             Math.min(
-                100,
-                Math.max(
-                    0,
-                    sensorData.batteryPercent
-                )
+                35,
+                data.tilt
             )
         );
 
 
-    // -------------------------
-    // Solar power
-    // -------------------------
-    sensorData.solarPower =
+    /* ---------- SAG ---------- */
+
+    data.sag +=
+        (Math.random() - 0.5) * 0.12;
+
+
+    data.sag =
         Math.max(
             0,
-            sensorData.solarPower +
-            (Math.random() - 0.5) * 8
+            Math.min(
+                3,
+                data.sag
+            )
         );
 
 
-    // -------------------------
-    // Load power
-    // -------------------------
-    sensorData.loadPower =
+    /* ---------- LEAKAGE ---------- */
+
+    /*
+       Normally 0 A.
+       Occasionally creates a small fault
+       so you can test the alarm.
+    */
+
+    if (Math.random() < 0.03) {
+
+        data.leakage =
+            Number(
+                (0.05 + Math.random() * 0.15)
+                .toFixed(2)
+            );
+
+    } else {
+
+        data.leakage = 0;
+
+    }
+
+
+    /* ---------- BATTERY ---------- */
+
+    data.batteryVoltage +=
+        (Math.random() - 0.5) * 0.05;
+
+
+    data.batteryVoltage =
+        Math.max(
+            7.1,
+            Math.min(
+                8.4,
+                data.batteryVoltage
+            )
+        );
+
+
+    data.batteryPercent =
+        Math.round(
+            (
+                (data.batteryVoltage - 7.1)
+                /
+                (8.4 - 7.1)
+            ) * 100
+        );
+
+
+    /* ---------- SOLAR ---------- */
+
+    data.solarPower +=
+        (Math.random() - 0.5) * 5;
+
+
+    data.solarPower =
+        Math.max(
+            0,
+            data.solarPower
+        );
+
+
+    /* ---------- LOAD ---------- */
+
+    data.loadPower +=
+        (Math.random() - 0.5) * 2;
+
+
+    data.loadPower =
         Math.max(
             5,
-            sensorData.loadPower +
-            (Math.random() - 0.5) * 3
+            data.loadPower
         );
 
 
-    // -------------------------
-    // Temperature
-    // -------------------------
-    sensorData.temperature +=
-        (Math.random() - 0.5) * 0.4;
+    /* ---------- TEMPERATURE ---------- */
+
+    data.temperature +=
+        (Math.random() - 0.5) * 0.3;
 
 
-    // -------------------------
-    // LoRa RSSI
-    // -------------------------
-    sensorData.rssi =
+    /* ---------- LORA ---------- */
+
+    data.rssi =
         Math.round(
-            -70 + (Math.random() * 12)
+            -70 + Math.random() * 12
         );
 
 
-    // -------------------------
-    // Packet count
-    // -------------------------
-    sensorData.packets += 1;
+    data.packets += 1;
 
 
-    // -------------------------
-    // Packet loss
-    // -------------------------
-    sensorData.packetLoss =
-        Math.max(
-            0,
-            Math.min(
-                10,
-                sensorData.packetLoss +
-                (Math.random() - 0.5) * 0.2
-            )
+    data.packetLoss =
+        Number(
+            Math.max(
+                0,
+                data.packetLoss +
+                (Math.random() - 0.5) * 0.1
+            ).toFixed(1)
         );
 
 }
 
 
-// =========================
-// UPDATE MAIN DASHBOARD
-// =========================
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+
 function updateDashboard() {
+
 
     setText(
         "dashboardPole",
-        sensorData.poleId
+        data.poleId
     );
+
 
     setText(
         "batteryVoltage",
-        sensorData.batteryVoltage.toFixed(2) + " V"
+        data.batteryVoltage.toFixed(2) + " V"
     );
+
 
     setText(
         "batteryPercent",
-        sensorData.batteryPercent + "%"
+        data.batteryPercent + "%"
     );
+
 
     setText(
         "solarPower",
-        sensorData.solarPower.toFixed(1) + " W"
+        data.solarPower.toFixed(1) + " W"
     );
+
 
     setText(
         "loadPower",
-        sensorData.loadPower.toFixed(1) + " W"
+        data.loadPower.toFixed(1) + " W"
     );
+
 
     setText(
         "temperature",
-        sensorData.temperature.toFixed(1) + " °C"
+        data.temperature.toFixed(1) + " °C"
     );
+
 
     setText(
         "dashboardTilt",
-        sensorData.tilt.toFixed(1) + "°"
+        data.tilt.toFixed(1) + "°"
     );
+
 
     setText(
         "dashboardSag",
-        sensorData.sag.toFixed(2) + " mm"
+        data.sag.toFixed(2) + " mm"
     );
+
 
     setText(
         "dashboardLeakage",
-        sensorData.leakage.toFixed(2) + " A"
+        data.leakage.toFixed(2) + " A"
     );
+
+
+    const fault =
+        isFault();
+
+
+    setText(
+        "overviewSafety",
+        fault ? "FAULT" : "SAFE"
+    );
+
+
+    setText(
+        "buzzerStatus",
+        fault ? "ON" : "OFF"
+    );
+
 
     setText(
         "lastUpdate",
-        "Updated just now"
+        "Updated: " +
+        new Date().toLocaleTimeString()
     );
+
+
+    updatePowerMode();
 
 }
 
 
-// =========================
-// SAFETY TAB
-// =========================
+/* =========================================================
+   SAFETY
+   ========================================================= */
+
 function updateSafety() {
 
-    const tilt = sensorData.tilt;
-    const sag = sensorData.sag;
-    const leakage = sensorData.leakage;
+
+    const tilt =
+        data.tilt;
+
+    const sag =
+        data.sag;
+
+    const leakage =
+        data.leakage;
 
 
-    // =====================================================
-    // SAFETY TAB VALUES
-    // =====================================================
+    /* ---------- TILT ---------- */
 
-    // THIS IS THE PART YOU ASKED ABOUT
     setText(
         "safetyTiltValue",
         tilt.toFixed(1) + "°"
     );
+
+
+    setText(
+        "tiltStatus",
+        tilt >= LIMITS.tilt
+            ? "ALERT"
+            : "NORMAL"
+    );
+
+
+    const progress =
+        document.getElementById(
+            "tiltProgress"
+        );
+
+
+    if (progress) {
+
+        const percentage =
+            Math.min(
+                100,
+                (tilt / LIMITS.tilt) * 100
+            );
+
+
+        progress.style.width =
+            percentage + "%";
+
+    }
+
+
+    /* ---------- SAG ---------- */
 
     setText(
         "safetySagValue",
@@ -369,77 +483,15 @@ function updateSafety() {
     );
 
 
-    // =====================================================
-    // TILT
-    // =====================================================
-
     setText(
-        "tiltValue",
-        tilt.toFixed(1) + "°"
-    );
-
-    const tiltProgress = get("tiltProgress");
-
-    if (tiltProgress) {
-
-        const tiltPercentage =
-            Math.min(
-                (tilt / THRESHOLDS.tilt) * 100,
-                100
-            );
-
-        tiltProgress.style.width =
-            tiltPercentage + "%";
-    }
-
-
-    if (tilt >= THRESHOLDS.tilt) {
-
-        setText(
-            "tiltStatus",
-            "ALERT"
-        );
-
-    } else {
-
-        setText(
-            "tiltStatus",
-            "NORMAL"
-        );
-
-    }
-
-
-    // =====================================================
-    // SAG
-    // =====================================================
-
-    setText(
-        "sagValue",
-        sag.toFixed(2) + " mm"
+        "sagStatus",
+        sag > LIMITS.sag
+            ? "ALERT"
+            : "NORMAL"
     );
 
 
-    if (sag > THRESHOLDS.sag) {
-
-        setText(
-            "sagStatus",
-            "ALERT"
-        );
-
-    } else {
-
-        setText(
-            "sagStatus",
-            "NORMAL"
-        );
-
-    }
-
-
-    // =====================================================
-    // LEAKAGE
-    // =====================================================
+    /* ---------- LEAKAGE ---------- */
 
     setText(
         "leakageValue",
@@ -447,81 +499,44 @@ function updateSafety() {
     );
 
 
-    if (leakage > THRESHOLDS.leakage) {
-
-        setText(
-            "leakageStatus",
-            "LEAKAGE DETECTED"
-        );
-
-    } else {
-
-        setText(
-            "leakageStatus",
-            "SAFE"
-        );
-
-    }
+    setText(
+        "leakageStatus",
+        leakage > 0
+            ? "LEAKAGE DETECTED"
+            : "SAFE"
+    );
 
 
-    // =====================================================
-    // OVERALL SAFETY
-    // =====================================================
+    /* ---------- OVERALL ---------- */
 
-    checkSystemSafety();
-
-}
+    const fault =
+        isFault();
 
 
-// =========================
-// CHECK OVERALL SAFETY
-// =========================
-function checkSystemSafety() {
-
-    const tiltDanger =
-        sensorData.tilt >= THRESHOLDS.tilt;
-
-    const sagDanger =
-        sensorData.sag > THRESHOLDS.sag;
-
-    const leakageDanger =
-        sensorData.leakage > THRESHOLDS.leakage;
-
-
-    const danger =
-        tiltDanger ||
-        sagDanger ||
-        leakageDanger;
-
-
-    if (danger) {
+    if (fault) {
 
         setText(
             "safetyStatus",
-            "⚠️ FAULT DETECTED"
+            "⚠ FAULT DETECTED"
         );
+
 
         setText(
             "safetyText",
             getFaultMessage()
         );
 
-        setText(
-            "overviewSafety",
-            "FAULT"
-        );
-
-        setText(
-            "buzzerStatus",
-            "ON"
-        );
 
         setText(
             "safetyBuzzer",
             "ON"
         );
 
-        updateBuzzer(true);
+
+        setText(
+            "alarmState",
+            "ACTIVE"
+        );
 
     } else {
 
@@ -530,45 +545,58 @@ function checkSystemSafety() {
             "✓ SYSTEM SAFE"
         );
 
+
         setText(
             "safetyText",
             "All safety parameters are within limits."
         );
 
-        setText(
-            "overviewSafety",
-            "SAFE"
-        );
-
-        setText(
-            "buzzerStatus",
-            "OFF"
-        );
 
         setText(
             "safetyBuzzer",
             "OFF"
         );
 
-        updateBuzzer(false);
+
+        setText(
+            "alarmState",
+            "READY"
+        );
 
     }
 
 }
 
 
-// =========================
-// FAULT MESSAGE
-// =========================
+/* =========================================================
+   FAULT CHECK
+   ========================================================= */
+
+function isFault() {
+
+    return (
+
+        data.tilt >= LIMITS.tilt ||
+
+        data.sag > LIMITS.sag ||
+
+        data.leakage > LIMITS.leakage
+
+    );
+
+}
+
+
+/* =========================================================
+   FAULT MESSAGE
+   ========================================================= */
+
 function getFaultMessage() {
 
     const faults = [];
 
 
-    if (
-        sensorData.tilt >=
-        THRESHOLDS.tilt
-    ) {
+    if (data.tilt >= LIMITS.tilt) {
 
         faults.push(
             "Pole tilt exceeded 30°"
@@ -577,10 +605,7 @@ function getFaultMessage() {
     }
 
 
-    if (
-        sensorData.sag >
-        THRESHOLDS.sag
-    ) {
+    if (data.sag > LIMITS.sag) {
 
         faults.push(
             "Conductor sag exceeded 2 mm"
@@ -589,10 +614,7 @@ function getFaultMessage() {
     }
 
 
-    if (
-        sensorData.leakage >
-        THRESHOLDS.leakage
-    ) {
+    if (data.leakage > 0) {
 
         faults.push(
             "Leakage current detected"
@@ -606,110 +628,99 @@ function getFaultMessage() {
 }
 
 
-// =========================
-// BUZZER
-// =========================
-function updateBuzzer(state) {
+/* =========================================================
+   ENERGY
+   ========================================================= */
 
-    const buzzer =
-        get("safetyBuzzer");
-
-    if (!buzzer) {
-        return;
-    }
-
-
-    if (state) {
-
-        buzzer.classList.add("active");
-
-    } else {
-
-        buzzer.classList.remove("active");
-
-    }
-
-}
-
-
-// =========================
-// ENERGY TAB
-// =========================
 function updateEnergy() {
-
-    const solarEnergy =
-        (sensorData.solarPower / 1000)
-        .toFixed(2) + " kWh";
-
-    setText(
-        "energySolarValue",
-        solarEnergy
-    );
-
-
-    setText(
-        "energyBatteryPercent",
-        sensorData.batteryPercent + "%"
-    );
 
 
     setText(
         "energySolar",
-        sensorData.solarPower.toFixed(1) + " W"
+        data.solarPower.toFixed(1) + " W"
+    );
+
+
+    setText(
+        "energySolarValue",
+        (
+            data.solarPower / 1000
+        ).toFixed(2) + " kWh"
     );
 
 
     setText(
         "energyBattery",
-        sensorData.batteryPercent + "%"
+        data.batteryPercent + "%"
+    );
+
+
+    setText(
+        "energyBatteryPercent",
+        data.batteryPercent + "%"
     );
 
 
     setText(
         "energyLoad",
-        sensorData.loadPower.toFixed(1) + " W"
+        data.loadPower.toFixed(1) + " W"
     );
 
 
-    updatePowerMode();
+    setText(
+        "energyFlowSolar",
+        data.solarPower.toFixed(1) + " W"
+    );
+
+
+    setText(
+        "energyFlowBattery",
+        data.batteryPercent + "%"
+    );
+
+
+    setText(
+        "energyFlowLoad",
+        data.loadPower.toFixed(1) + " W"
+    );
 
 }
 
 
-// =========================
-// DAY / NIGHT POWER MODE
-// =========================
+/* =========================================================
+   POWER MODE
+   ========================================================= */
+
 function updatePowerMode() {
+
 
     const hour =
         new Date().getHours();
 
 
-    const dayMode =
+    const daytime =
         hour >= 6 &&
         hour < 18;
 
 
-    const icon =
-        get("powerModeIcon");
-
-
-    if (dayMode) {
+    if (daytime) {
 
         setText(
             "powerModeTitle",
             "Solar Power Mode"
         );
 
+
         setText(
             "powerModeText",
-            "Solar panel is supplying the system and charging the battery."
+            "Solar is supplying the system and charging the battery."
         );
 
 
-        if (icon) {
-            icon.textContent = "☀️";
-        }
+        setText(
+            "powerModeIcon",
+            "☀️"
+        );
 
     } else {
 
@@ -718,75 +729,87 @@ function updatePowerMode() {
             "Battery Power Mode"
         );
 
+
         setText(
             "powerModeText",
             "Battery is supplying the system during night operation."
         );
 
 
-        if (icon) {
-            icon.textContent = "🌙";
-        }
+        setText(
+            "powerModeIcon",
+            "🌙"
+        );
 
     }
+
+
+    setText(
+        "flowSolar",
+        data.solarPower.toFixed(1) + " W"
+    );
+
+
+    setText(
+        "flowBattery",
+        data.batteryPercent + "%"
+    );
+
+
+    setText(
+        "flowLoad",
+        data.loadPower.toFixed(1) + " W"
+    );
 
 }
 
 
-// =========================
-// COMMUNICATION TAB
-// =========================
+/* =========================================================
+   COMMUNICATION
+   ========================================================= */
+
 function updateCommunication() {
+
 
     setText(
         "nodeId",
-        sensorData.poleId
+        data.poleId
     );
 
 
     setText(
         "rssi",
-        sensorData.rssi + " dBm"
+        data.rssi + " dBm"
     );
 
 
     setText(
         "packets",
-        sensorData.packets
+        data.packets
     );
 
 
     setText(
         "packetLoss",
-        sensorData.packetLoss.toFixed(1) + "%"
+        data.packetLoss.toFixed(1) + "%"
     );
 
 
-    if (sensorData.loraConnected) {
-
-        setText(
-            "communicationStatus",
-            "CONNECTED"
-        );
-
-    } else {
-
-        setText(
-            "communicationStatus",
-            "DISCONNECTED"
-        );
-
-    }
+    setText(
+        "communicationStatus",
+        data.loraConnected
+            ? "CONNECTED"
+            : "DISCONNECTED"
+    );
 
 }
 
 
-// =========================
-// MAIN UPDATE FUNCTION
-// =========================
-function updateAll() {
+/* =========================================================
+   UPDATE EVERYTHING
+   ========================================================= */
 
-    simulateSensorData();
+function updateEverything() {
 
     updateDashboard();
 
@@ -799,19 +822,24 @@ function updateAll() {
 }
 
 
-// =========================
-// INITIAL LOAD
-// =========================
-updateDashboard();
-updateSafety();
-updateEnergy();
-updateCommunication();
+/* =========================================================
+   INITIAL START
+   ========================================================= */
+
+updateEverything();
 
 
-// =========================
-// UPDATE EVERY 2.5 SECONDS
-// =========================
+/* =========================================================
+   SIMULATE NEW DATA EVERY 2.5 SECONDS
+   ========================================================= */
+
 setInterval(
-    updateAll,
+    function () {
+
+        simulateData();
+
+        updateEverything();
+
+    },
     2500
 );
