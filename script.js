@@ -1,762 +1,418 @@
-/* ============================================================
-   SMART POLE MONITORING SYSTEM
-   Professional Navy Blue Dashboard
-   ============================================================
+/* =========================================================
+   SMART POLE MONITORING DASHBOARD
+   Complete JavaScript
+   ========================================================= */
 
-   MONITORED PARAMETERS
-   --------------------
-   Pole Tilt          : Maximum 30°
-   Conductor Sag      : Maximum +2 mm
-   Leakage Current    : 0 A target
-
-   POWER MANAGEMENT
-   ----------------
-   Day   : Solar → Load + Battery Charging
-   Night : Battery → Load
-
-   COMMUNICATION
-   -------------
-   LoRa
-
-   HARDWARE CONCEPT
-   ----------------
-   Arduino / Controller
-        ↓
-   Sensors
-        ↓
-   LoRa
-        ↓
-   Gateway / Backend
-        ↓
-   Dashboard
-
-============================================================ */
-
-
-/* ============================================================
-   PROJECT THRESHOLDS
-============================================================ */
-
+// =========================
+// SAFETY THRESHOLDS
+// =========================
 const THRESHOLDS = {
-
-    tilt: 30.0,       // degrees
-
-    sag: 2.0,         // mm
-
-    leakage: 0.0      // amperes
-
+    tilt: 30.0,       // Maximum tilt in degrees
+    sag: 2.0,         // Maximum sag in mm
+    leakage: 0.0      // Leakage target
 };
 
 
-/* ============================================================
-   SENSOR DATA
-============================================================ */
-
+// =========================
+// SENSOR DATA
+// =========================
 let sensorData = {
-
     poleId: "SP-001",
 
+    // Safety
     tilt: 3.8,
-
     sag: 0.80,
-
     leakage: 0.00,
 
+    // Energy
     batteryVoltage: 7.82,
-
     batteryPercent: 82,
-
     solarPower: 48.5,
-
     loadPower: 21.4,
-
     temperature: 29.4,
 
+    // Communication
     loraConnected: true,
-
     rssi: -67,
-
     packets: 1284,
-
     packetLoss: 0.8
-
 };
 
 
-/* ============================================================
-   HELPER
-============================================================ */
-
+// =========================
+// HELPER FUNCTIONS
+// =========================
 function get(id) {
-
     return document.getElementById(id);
-
 }
 
-
 function setText(id, value) {
-
     const element = get(id);
 
     if (element) {
-
         element.textContent = value;
-
     }
-
 }
 
 
-/* ============================================================
-   TAB SYSTEM
-============================================================ */
-
-const navButtons =
-    document.querySelectorAll(".nav-btn");
-
-const tabs =
-    document.querySelectorAll(".tab-content");
-
-const pageTitle =
-    get("pageTitle");
-
-
-const pageTitles = {
-
-    dashboard: "Dashboard",
-
-    energy: "Energy Management",
-
-    safety: "Safety Monitoring",
-
-    communication: "Communication"
-
-};
-
+// =========================
+// TAB SYSTEM
+// =========================
+const navButtons = document.querySelectorAll(".nav-btn");
+const tabContents = document.querySelectorAll(".tab-content");
+const pageTitle = get("pageTitle");
 
 navButtons.forEach(button => {
 
     button.addEventListener("click", () => {
 
-        const target =
-            button.dataset.tab;
+        const targetTab = button.dataset.tab;
 
-
-        /* Remove active state */
-
+        // Remove active class
         navButtons.forEach(btn => {
-
             btn.classList.remove("active");
-
         });
 
-
-        tabs.forEach(tab => {
-
+        tabContents.forEach(tab => {
             tab.classList.remove("active");
-
         });
 
-
-        /* Activate selected tab */
-
+        // Activate selected tab
         button.classList.add("active");
 
-
-        const selectedTab =
-            get(target);
-
+        const selectedTab = get(targetTab);
 
         if (selectedTab) {
-
             selectedTab.classList.add("active");
-
         }
 
+        // Change page title
+        const title = button.querySelector("span");
 
-        if (pageTitle) {
-
-            pageTitle.textContent =
-                pageTitles[target] || "Dashboard";
-
+        if (title && pageTitle) {
+            pageTitle.textContent = title.textContent;
         }
-
     });
 
 });
 
 
-/* ============================================================
-   LIVE CLOCK
-============================================================ */
-
+// =========================
+// LIVE CLOCK
+// =========================
 function updateClock() {
 
     const now = new Date();
 
-    const time =
-        now.toLocaleTimeString(
-            "en-IN",
-            {
-                hour12: false
-            }
-        );
+    const time = now.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    });
 
-
-    setText(
-        "clock",
-        time
-    );
-
+    setText("clock", time);
 }
 
-
+setInterval(updateClock, 1000);
 updateClock();
 
-setInterval(
-    updateClock,
-    1000
-);
 
-
-/* ============================================================
-   POLE SELECTOR
-============================================================ */
-
-const poleSelect =
-    get("poleSelect");
-
+// =========================
+// POLE SELECTOR
+// =========================
+const poleSelect = get("poleSelect");
 
 if (poleSelect) {
 
-    poleSelect.addEventListener(
-        "change",
-        function () {
+    poleSelect.addEventListener("change", () => {
 
-            sensorData.poleId =
-                this.value;
+        sensorData.poleId = poleSelect.value;
 
+        setText("dashboardPole", sensorData.poleId);
+        setText("nodeId", sensorData.poleId);
 
-            updatePoleID();
+        updateDashboard();
+        updateSafety();
+        updateEnergy();
+        updateCommunication();
 
-        }
-    );
+    });
 
 }
 
 
-function updatePoleID() {
+// =========================
+// SIMULATE SENSOR DATA
+// =========================
+// This is only for testing the dashboard.
+// Replace this function later with actual
+// ESP32/Arduino/LoRa data.
 
-    setText(
-        "nodeId",
-        sensorData.poleId
-    );
+function simulateSensorData() {
 
+    // -------------------------
+    // Tilt
+    // -------------------------
+    sensorData.tilt =
+        Math.max(
+            0,
+            sensorData.tilt + (Math.random() - 0.5) * 1.5
+        );
+
+    // Rare dangerous tilt for testing
+    if (Math.random() < 0.02) {
+        sensorData.tilt = 31 + Math.random() * 5;
+    }
+
+
+    // -------------------------
+    // Conductor sag
+    // -------------------------
+    sensorData.sag =
+        Math.max(
+            0,
+            sensorData.sag + (Math.random() - 0.5) * 0.25
+        );
+
+    // Rare dangerous sag
+    if (Math.random() < 0.02) {
+        sensorData.sag = 2.1 + Math.random() * 1;
+    }
+
+
+    // -------------------------
+    // Leakage current
+    // -------------------------
+    sensorData.leakage = 0;
+
+    // Rare leakage fault
+    if (Math.random() < 0.02) {
+        sensorData.leakage =
+            0.05 + Math.random() * 0.20;
+    }
+
+
+    // -------------------------
+    // Battery voltage
+    // -------------------------
+    sensorData.batteryVoltage +=
+        (Math.random() - 0.5) * 0.08;
+
+    sensorData.batteryVoltage =
+        Math.min(
+            8.4,
+            Math.max(
+                7.1,
+                sensorData.batteryVoltage
+            )
+        );
+
+
+    // Approximate battery percentage
+    sensorData.batteryPercent =
+        ((sensorData.batteryVoltage - 7.1) /
+            (8.4 - 7.1)) * 100;
+
+    sensorData.batteryPercent =
+        Math.round(
+            Math.min(
+                100,
+                Math.max(
+                    0,
+                    sensorData.batteryPercent
+                )
+            )
+        );
+
+
+    // -------------------------
+    // Solar power
+    // -------------------------
+    sensorData.solarPower =
+        Math.max(
+            0,
+            sensorData.solarPower +
+            (Math.random() - 0.5) * 8
+        );
+
+
+    // -------------------------
+    // Load power
+    // -------------------------
+    sensorData.loadPower =
+        Math.max(
+            5,
+            sensorData.loadPower +
+            (Math.random() - 0.5) * 3
+        );
+
+
+    // -------------------------
+    // Temperature
+    // -------------------------
+    sensorData.temperature +=
+        (Math.random() - 0.5) * 0.4;
+
+
+    // -------------------------
+    // LoRa RSSI
+    // -------------------------
+    sensorData.rssi =
+        Math.round(
+            -70 + (Math.random() * 12)
+        );
+
+
+    // -------------------------
+    // Packet count
+    // -------------------------
+    sensorData.packets += 1;
+
+
+    // -------------------------
+    // Packet loss
+    // -------------------------
+    sensorData.packetLoss =
+        Math.max(
+            0,
+            Math.min(
+                10,
+                sensorData.packetLoss +
+                (Math.random() - 0.5) * 0.2
+            )
+        );
+
+}
+
+
+// =========================
+// UPDATE MAIN DASHBOARD
+// =========================
+function updateDashboard() {
 
     setText(
         "dashboardPole",
         sensorData.poleId
     );
 
-}
-
-
-/* ============================================================
-   SENSOR SIMULATION
-============================================================ */
-
-function randomVariation(
-    value,
-    variation
-) {
-
-    return value +
-        (
-            Math.random() *
-            variation * 2
-        ) -
-        variation;
-
-}
-
-
-/* ============================================================
-   GENERATE SIMULATED SENSOR VALUES
-============================================================ */
-
-function simulateSensors() {
-
-    /* ------------------------------------------
-       POLE TILT
-    ------------------------------------------ */
-
-    sensorData.tilt =
-        Math.max(
-            0,
-            randomVariation(
-                sensorData.tilt,
-                0.7
-            )
-        );
-
-
-    /*
-       Occasionally generate a dangerous
-       tilt value so the alert system can
-       be tested.
-    */
-
-    if (Math.random() < 0.015) {
-
-        sensorData.tilt =
-            31 +
-            Math.random() * 5;
-
-    }
-
-
-    /* ------------------------------------------
-       CONDUCTOR SAG
-    ------------------------------------------ */
-
-    sensorData.sag =
-        Math.max(
-            0,
-            randomVariation(
-                sensorData.sag,
-                0.10
-            )
-        );
-
-
-    /*
-       Occasionally simulate excessive sag.
-    */
-
-    if (Math.random() < 0.015) {
-
-        sensorData.sag =
-            2.1 +
-            Math.random() * 0.8;
-
-    }
-
-
-    /* ------------------------------------------
-       LEAKAGE CURRENT
-    ------------------------------------------ */
-
-    /*
-       Normal condition = 0 A.
-
-       Small probability of leakage is generated
-       only to test the dashboard alert.
-    */
-
-    if (Math.random() < 0.025) {
-
-        sensorData.leakage =
-            Number(
-                (
-                    0.01 +
-                    Math.random() * 0.15
-                ).toFixed(2)
-            );
-
-    } else {
-
-        sensorData.leakage = 0;
-
-    }
-
-
-    /* ------------------------------------------
-       BATTERY
-    ------------------------------------------ */
-
-    sensorData.batteryVoltage =
-        randomVariation(
-            sensorData.batteryVoltage,
-            0.025
-        );
-
-
-    sensorData.batteryVoltage =
-        Math.max(
-            7.1,
-            Math.min(
-                8.4,
-                sensorData.batteryVoltage
-            )
-        );
-
-
-    /*
-       Approximate battery percentage
-       for the dashboard display.
-
-       7.1 V = 0%
-       8.4 V = 100%
-    */
-
-    sensorData.batteryPercent =
-        Math.round(
-            (
-                (
-                    sensorData.batteryVoltage -
-                    7.1
-                ) /
-                1.3
-            ) * 100
-        );
-
-
-    sensorData.batteryPercent =
-        Math.max(
-            0,
-            Math.min(
-                100,
-                sensorData.batteryPercent
-            )
-        );
-
-
-    /* ------------------------------------------
-       SOLAR POWER
-    ------------------------------------------ */
-
-    sensorData.solarPower =
-        Math.max(
-            0,
-            randomVariation(
-                sensorData.solarPower,
-                4
-            )
-        );
-
-
-    /* ------------------------------------------
-       LOAD
-    ------------------------------------------ */
-
-    sensorData.loadPower =
-        Math.max(
-            5,
-            randomVariation(
-                sensorData.loadPower,
-                1.5
-            )
-        );
-
-
-    /* ------------------------------------------
-       TEMPERATURE
-    ------------------------------------------ */
-
-    sensorData.temperature =
-        randomVariation(
-            sensorData.temperature,
-            0.3
-        );
-
-
-    /* ------------------------------------------
-       LoRa
-    ------------------------------------------ */
-
-    sensorData.rssi =
-        Math.round(
-            randomVariation(
-                sensorData.rssi,
-                3
-            )
-        );
-
-
-    sensorData.packets +=
-        Math.floor(
-            Math.random() * 3
-        );
-
-
-    sensorData.packetLoss =
-        Number(
-            (
-                Math.random() * 1.5
-            ).toFixed(1)
-        );
-
-
-    /* ------------------------------------------
-       UPDATE DASHBOARD
-    ------------------------------------------ */
-
-    updateAllDisplays();
-
-}
-
-
-/* ============================================================
-   UPDATE EVERYTHING
-============================================================ */
-
-function updateAllDisplays() {
-
-    updatePoleID();
-
-    updateDashboard();
-
-    updateSafety();
-
-    updateEnergy();
-
-    updateCommunication();
-
-    updatePowerMode();
-
-}
-
-
-/* ============================================================
-   DASHBOARD
-============================================================ */
-
-function updateDashboard() {
-
-    /* Battery */
-
     setText(
         "batteryVoltage",
-        sensorData.batteryVoltage.toFixed(2)
+        sensorData.batteryVoltage.toFixed(2) + " V"
     );
-
 
     setText(
         "batteryPercent",
-        sensorData.batteryPercent
+        sensorData.batteryPercent + "%"
     );
-
-
-    /* Solar */
 
     setText(
         "solarPower",
-        sensorData.solarPower.toFixed(1)
+        sensorData.solarPower.toFixed(1) + " W"
     );
-
-
-    /* Load */
 
     setText(
         "loadPower",
-        sensorData.loadPower.toFixed(1)
+        sensorData.loadPower.toFixed(1) + " W"
     );
-
-
-    /* Temperature */
 
     setText(
         "temperature",
-        sensorData.temperature.toFixed(1)
+        sensorData.temperature.toFixed(1) + " °C"
     );
-
-
-    /* Last update */
-
-    setText(
-        "lastUpdate",
-        new Date().toLocaleTimeString(
-            "en-IN"
-        )
-    );
-
-
-    /* ------------------------------------------
-       DASHBOARD SAFETY VALUES
-    ------------------------------------------ */
 
     setText(
         "dashboardTilt",
         sensorData.tilt.toFixed(1) + "°"
     );
 
-
     setText(
         "dashboardSag",
         sensorData.sag.toFixed(2) + " mm"
     );
-
 
     setText(
         "dashboardLeakage",
         sensorData.leakage.toFixed(2) + " A"
     );
 
-
-    /* ------------------------------------------
-       SAFETY COLOURS ON DASHBOARD
-    ------------------------------------------ */
-
-    const leakage =
-        get("dashboardLeakage");
-
-
-    if (leakage) {
-
-        leakage.classList.remove(
-            "green",
-            "red"
-        );
-
-
-        if (
-            sensorData.leakage >
-            THRESHOLDS.leakage
-        ) {
-
-            leakage.classList.add("red");
-
-        } else {
-
-            leakage.classList.add("green");
-
-        }
-
-    }
-
-
-    /* ------------------------------------------
-       OVERALL SAFETY
-    ------------------------------------------ */
-
-    const safe =
-        checkSystemSafety();
-
-
     setText(
-        "overviewSafety",
-        safe
-            ? "Normal"
-            : "Alert"
+        "lastUpdate",
+        "Updated just now"
     );
-
-
-    const overview =
-        get("overviewSafety");
-
-
-    if (overview) {
-
-        overview.classList.remove(
-            "green",
-            "red"
-        );
-
-
-        overview.classList.add(
-            safe
-                ? "green"
-                : "red"
-        );
-
-    }
 
 }
 
 
-/* ============================================================
-   SAFETY TAB
-============================================================ */
-
+// =========================
+// SAFETY TAB
+// =========================
 function updateSafety() {
 
-    const tilt =
-        sensorData.tilt;
-
-    const sag =
-        sensorData.sag;
-
-    const leakage =
-        sensorData.leakage;
+    const tilt = sensorData.tilt;
+    const sag = sensorData.sag;
+    const leakage = sensorData.leakage;
 
 
-    /* ========================================================
-       TILT
-    ======================================================== */
+    // =====================================================
+    // SAFETY TAB VALUES
+    // =====================================================
+
+    // THIS IS THE PART YOU ASKED ABOUT
+    setText(
+        "safetyTiltValue",
+        tilt.toFixed(1) + "°"
+    );
+
+    setText(
+        "safetySagValue",
+        sag.toFixed(2) + " mm"
+    );
+
+
+    // =====================================================
+    // TILT
+    // =====================================================
 
     setText(
         "tiltValue",
         tilt.toFixed(1) + "°"
     );
 
-
-    /*
-       IMPORTANT:
-       The progress bar reaches 100%
-       at the 30° threshold.
-    */
-
-    const tiltPercentage =
-        Math.min(
-            (
-                tilt /
-                THRESHOLDS.tilt
-            ) * 100,
-            100
-        );
-
-
-    const tiltProgress =
-        get("tiltProgress");
-
+    const tiltProgress = get("tiltProgress");
 
     if (tiltProgress) {
 
+        const tiltPercentage =
+            Math.min(
+                (tilt / THRESHOLDS.tilt) * 100,
+                100
+            );
+
         tiltProgress.style.width =
             tiltPercentage + "%";
+    }
 
 
-        if (
-            tilt >=
-            THRESHOLDS.tilt
-        ) {
+    if (tilt >= THRESHOLDS.tilt) {
 
-            tiltProgress.style.background =
-                "#ef4444";
+        setText(
+            "tiltStatus",
+            "ALERT"
+        );
 
-        } else if (
-            tilt >=
-            THRESHOLDS.tilt * 0.7
-        ) {
+    } else {
 
-            tiltProgress.style.background =
-                "#f59e0b";
-
-        } else {
-
-            tiltProgress.style.background =
-                "#22c55e";
-
-        }
+        setText(
+            "tiltStatus",
+            "NORMAL"
+        );
 
     }
 
 
-    /* ========================================================
-       TILT STATUS
-    ======================================================== */
-
-    setStatus(
-        "tiltStatus",
-        tilt < THRESHOLDS.tilt,
-        "NORMAL",
-        "ALERT"
-    );
-
-
-    /* ========================================================
-       SAG
-    ======================================================== */
+    // =====================================================
+    // SAG
+    // =====================================================
 
     setText(
         "sagValue",
@@ -764,17 +420,26 @@ function updateSafety() {
     );
 
 
-    setStatus(
-        "sagStatus",
-        sag <= THRESHOLDS.sag,
-        "NORMAL",
-        "ALERT"
-    );
+    if (sag > THRESHOLDS.sag) {
+
+        setText(
+            "sagStatus",
+            "ALERT"
+        );
+
+    } else {
+
+        setText(
+            "sagStatus",
+            "NORMAL"
+        );
+
+    }
 
 
-    /* ========================================================
-       LEAKAGE
-    ======================================================== */
+    // =====================================================
+    // LEAKAGE
+    // =====================================================
 
     setText(
         "leakageValue",
@@ -782,177 +447,123 @@ function updateSafety() {
     );
 
 
-    setStatus(
-        "leakageStatus",
-        leakage <= THRESHOLDS.leakage,
-        "SAFE",
-        "LEAKAGE DETECTED"
-    );
+    if (leakage > THRESHOLDS.leakage) {
 
-
-    /* ========================================================
-       LEAKAGE VALUE COLOR
-    ======================================================== */
-
-    const leakageValue =
-        get("leakageValue");
-
-
-    if (leakageValue) {
-
-        leakageValue.classList.remove(
-            "leakage-safe",
-            "leakage-warning"
+        setText(
+            "leakageStatus",
+            "LEAKAGE DETECTED"
         );
-
-
-        if (
-            leakage >
-            THRESHOLDS.leakage
-        ) {
-
-            leakageValue.classList.add(
-                "leakage-warning"
-            );
-
-        } else {
-
-            leakageValue.classList.add(
-                "leakage-safe"
-            );
-
-        }
-
-    }
-
-
-    /* ========================================================
-       OVERALL SAFETY
-    ======================================================== */
-
-    const systemSafe =
-        checkSystemSafety();
-
-
-    const safetyTitle =
-        get("safetyStatus");
-
-    const safetyText =
-        get("safetyText");
-
-    const safetyIcon =
-        document.querySelector(
-            ".safety-icon"
-        );
-
-
-    if (systemSafe) {
-
-        if (safetyTitle) {
-
-            safetyTitle.textContent =
-                "SYSTEM SAFE";
-
-            safetyTitle.style.color =
-                "#22c55e";
-
-        }
-
-
-        if (safetyText) {
-
-            safetyText.textContent =
-                "All monitored parameters are within their defined thresholds.";
-
-        }
-
-
-        if (safetyIcon) {
-
-            safetyIcon.style.color =
-                "#22c55e";
-
-        }
-
-
-        updateBuzzer(false);
 
     } else {
 
-        if (safetyTitle) {
+        setText(
+            "leakageStatus",
+            "SAFE"
+        );
 
-            safetyTitle.textContent =
-                "SAFETY ALERT";
-
-            safetyTitle.style.color =
-                "#ef4444";
-
-        }
+    }
 
 
-        if (safetyText) {
+    // =====================================================
+    // OVERALL SAFETY
+    // =====================================================
 
-            safetyText.textContent =
-                getFaultMessage();
+    checkSystemSafety();
 
-        }
+}
 
 
-        if (safetyIcon) {
+// =========================
+// CHECK OVERALL SAFETY
+// =========================
+function checkSystemSafety() {
 
-            safetyIcon.style.color =
-                "#ef4444";
+    const tiltDanger =
+        sensorData.tilt >= THRESHOLDS.tilt;
 
-        }
+    const sagDanger =
+        sensorData.sag > THRESHOLDS.sag;
 
+    const leakageDanger =
+        sensorData.leakage > THRESHOLDS.leakage;
+
+
+    const danger =
+        tiltDanger ||
+        sagDanger ||
+        leakageDanger;
+
+
+    if (danger) {
+
+        setText(
+            "safetyStatus",
+            "⚠️ FAULT DETECTED"
+        );
+
+        setText(
+            "safetyText",
+            getFaultMessage()
+        );
+
+        setText(
+            "overviewSafety",
+            "FAULT"
+        );
+
+        setText(
+            "buzzerStatus",
+            "ON"
+        );
+
+        setText(
+            "safetyBuzzer",
+            "ON"
+        );
 
         updateBuzzer(true);
+
+    } else {
+
+        setText(
+            "safetyStatus",
+            "✓ SYSTEM SAFE"
+        );
+
+        setText(
+            "safetyText",
+            "All safety parameters are within limits."
+        );
+
+        setText(
+            "overviewSafety",
+            "SAFE"
+        );
+
+        setText(
+            "buzzerStatus",
+            "OFF"
+        );
+
+        setText(
+            "safetyBuzzer",
+            "OFF"
+        );
+
+        updateBuzzer(false);
 
     }
 
 }
 
 
-/* ============================================================
-   CHECK OVERALL SAFETY
-============================================================ */
-
-function checkSystemSafety() {
-
-    const tiltSafe =
-        sensorData.tilt <
-        THRESHOLDS.tilt;
-
-
-    const sagSafe =
-        sensorData.sag <=
-        THRESHOLDS.sag;
-
-
-    const leakageSafe =
-        sensorData.leakage <=
-        THRESHOLDS.leakage;
-
-
-    return (
-        tiltSafe &&
-        sagSafe &&
-        leakageSafe
-    );
-
-}
-
-
-/* ============================================================
-   FAULT MESSAGE
-============================================================ */
-
+// =========================
+// FAULT MESSAGE
+// =========================
 function getFaultMessage() {
 
     const faults = [];
 
-
-    /* Tilt */
 
     if (
         sensorData.tilt >=
@@ -960,13 +571,11 @@ function getFaultMessage() {
     ) {
 
         faults.push(
-            "Pole tilt exceeds 30°"
+            "Pole tilt exceeded 30°"
         );
 
     }
 
-
-    /* Sag */
 
     if (
         sensorData.sag >
@@ -974,13 +583,11 @@ function getFaultMessage() {
     ) {
 
         faults.push(
-            "Conductor sag exceeds +2 mm"
+            "Conductor sag exceeded 2 mm"
         );
 
     }
 
-
-    /* Leakage */
 
     if (
         sensorData.leakage >
@@ -994,231 +601,217 @@ function getFaultMessage() {
     }
 
 
-    if (faults.length === 0) {
-
-        return "System normal.";
-
-    }
-
-
-    return faults.join(" • ");
+    return faults.join(" | ");
 
 }
 
 
-/* ============================================================
-   BUZZER
-============================================================ */
-
-function updateBuzzer(alert) {
+// =========================
+// BUZZER
+// =========================
+function updateBuzzer(state) {
 
     const buzzer =
-        get("buzzerStatus");
-
-    const safetyBuzzer =
         get("safetyBuzzer");
 
-
-    if (alert) {
-
-        setText(
-            "buzzerStatus",
-            "ON"
-        );
+    if (!buzzer) {
+        return;
+    }
 
 
-        setText(
-            "safetyBuzzer",
-            "ON"
-        );
+    if (state) {
 
-
-        if (buzzer) {
-
-            buzzer.classList.remove(
-                "green"
-            );
-
-            buzzer.classList.add(
-                "red"
-            );
-
-        }
-
-
-        if (safetyBuzzer) {
-
-            safetyBuzzer.classList.remove(
-                "green"
-            );
-
-            safetyBuzzer.classList.add(
-                "red"
-            );
-
-        }
+        buzzer.classList.add("active");
 
     } else {
 
-        setText(
-            "buzzerStatus",
-            "OFF"
-        );
-
-
-        setText(
-            "safetyBuzzer",
-            "OFF"
-        );
-
-
-        if (buzzer) {
-
-            buzzer.classList.remove(
-                "red"
-            );
-
-            buzzer.classList.add(
-                "green"
-            );
-
-        }
-
-
-        if (safetyBuzzer) {
-
-            safetyBuzzer.classList.remove(
-                "red"
-            );
-
-            safetyBuzzer.classList.add(
-                "green"
-            );
-
-        }
+        buzzer.classList.remove("active");
 
     }
 
 }
 
 
-/* ============================================================
-   ENERGY
-============================================================ */
-
+// =========================
+// ENERGY TAB
+// =========================
 function updateEnergy() {
 
-    /* Current solar power */
-
-    setText(
-        "energySolar",
-        sensorData.solarPower.toFixed(1) +
-        " W"
-    );
-
-
-    /* Battery voltage */
-
-    setText(
-        "energyBattery",
-        sensorData.batteryVoltage.toFixed(2) +
-        " V"
-    );
-
-
-    /* Load */
-
-    setText(
-        "energyLoad",
-        sensorData.loadPower.toFixed(1) +
-        " W"
-    );
-
-
-    /* Battery percentage */
-
-    setText(
-        "energyBatteryPercent",
-        sensorData.batteryPercent
-    );
-
-
-    /*
-       Approximate daily energy values
-       for the simulation dashboard.
-    */
-
     const solarEnergy =
-        (
-            sensorData.solarPower *
-            0.1
-        ).toFixed(2);
-
+        (sensorData.solarPower / 1000)
+        .toFixed(2) + " kWh";
 
     setText(
         "energySolarValue",
         solarEnergy
     );
 
+
+    setText(
+        "energyBatteryPercent",
+        sensorData.batteryPercent + "%"
+    );
+
+
+    setText(
+        "energySolar",
+        sensorData.solarPower.toFixed(1) + " W"
+    );
+
+
+    setText(
+        "energyBattery",
+        sensorData.batteryPercent + "%"
+    );
+
+
+    setText(
+        "energyLoad",
+        sensorData.loadPower.toFixed(1) + " W"
+    );
+
+
+    updatePowerMode();
+
 }
 
 
-/* ============================================================
-   DAY / NIGHT POWER MODE
-============================================================ */
-
+// =========================
+// DAY / NIGHT POWER MODE
+// =========================
 function updatePowerMode() {
 
     const hour =
         new Date().getHours();
 
 
-    const modeTitle =
-        get("powerModeTitle");
-
-    const modeText =
-        get("powerModeText");
-
-    const modeIcon =
-        get("powerModeIcon");
-
-
-    /*
-       06:00 - 17:59
-       DAY MODE
-
-       18:00 - 05:59
-       NIGHT MODE
-    */
-
     const dayMode =
         hour >= 6 &&
         hour < 18;
 
 
+    const icon =
+        get("powerModeIcon");
+
+
     if (dayMode) {
 
-        /* ------------------------------------------
-           DAY
-        ------------------------------------------ */
+        setText(
+            "powerModeTitle",
+            "Solar Power Mode"
+        );
 
-        if (modeTitle) {
+        setText(
+            "powerModeText",
+            "Solar panel is supplying the system and charging the battery."
+        );
 
-            modeTitle.textContent =
-                "DAY MODE • SOLAR POWER";
 
+        if (icon) {
+            icon.textContent = "☀️";
         }
 
+    } else {
 
-        if (modeText) {
+        setText(
+            "powerModeTitle",
+            "Battery Power Mode"
+        );
 
-            modeText.textContent =
-                "Solar panel is supplying the system and charging the battery.";
+        setText(
+            "powerModeText",
+            "Battery is supplying the system during night operation."
+        );
 
+
+        if (icon) {
+            icon.textContent = "🌙";
         }
 
+    }
 
-        if (modeIcon) {
+}
 
-            modeIcon.innerHTML =
-                '<i c
+
+// =========================
+// COMMUNICATION TAB
+// =========================
+function updateCommunication() {
+
+    setText(
+        "nodeId",
+        sensorData.poleId
+    );
+
+
+    setText(
+        "rssi",
+        sensorData.rssi + " dBm"
+    );
+
+
+    setText(
+        "packets",
+        sensorData.packets
+    );
+
+
+    setText(
+        "packetLoss",
+        sensorData.packetLoss.toFixed(1) + "%"
+    );
+
+
+    if (sensorData.loraConnected) {
+
+        setText(
+            "communicationStatus",
+            "CONNECTED"
+        );
+
+    } else {
+
+        setText(
+            "communicationStatus",
+            "DISCONNECTED"
+        );
+
+    }
+
+}
+
+
+// =========================
+// MAIN UPDATE FUNCTION
+// =========================
+function updateAll() {
+
+    simulateSensorData();
+
+    updateDashboard();
+
+    updateSafety();
+
+    updateEnergy();
+
+    updateCommunication();
+
+}
+
+
+// =========================
+// INITIAL LOAD
+// =========================
+updateDashboard();
+updateSafety();
+updateEnergy();
+updateCommunication();
+
+
+// =========================
+// UPDATE EVERY 2.5 SECONDS
+// =========================
+setInterval(
+    updateAll,
+    2500
+);
